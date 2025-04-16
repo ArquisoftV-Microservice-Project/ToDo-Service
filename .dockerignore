@@ -1,0 +1,12 @@
+# Ignorar la carpeta .github (todos sus archivos y subcarpetas)
+.github/
+
+# Ignorar el archivo .gitignore
+.gitignore
+
+# Ignorar la carpeta .git (repositorio de Git)
+.git/
+
+LICENSE
+
+README.md

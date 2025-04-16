@@ -1,0 +1,63 @@
+name: Image Build and Push
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" >> $GITHUB_ENV
+
+      - name: Set up GCP credentials
+        run: |
+          echo "${{ secrets.GCP_SA_KEY_B64 }}" | base64 -d > terraform-key.json
+          echo 'GCP_CREDENTIALS<<EOF' >> $GITHUB_ENV
+          cat terraform-key.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/terraform-key.json" >> $GITHUB_ENV
+
+      - id: "auth"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: ${{ env.GCP_CREDENTIALS }}
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v2"
+        with:
+          project_id: "${{ secrets.GCP_PROJECT }}"
+
+      - name: "Use gcloud CLI"
+        run: |
+          gcloud info
+          gcloud auth activate-service-account --key-file=terraform-key.json
+          gcloud auth configure-docker ${{ vars.GCP_ZONE }}-docker.pkg.dev
+
+      - name: Set image tags
+        run: |
+          TIMESTAMP=$(date -u +'%Y%m%d-%H%M%S')
+          # Reemplaza '/' por '-' en el nombre de la rama para evitar errores en el tag
+          BRANCH_NAME=$(echo "${GITHUB_REF##*/}" | tr '/' '-')
+          echo "IMAGE_TAG=${BRANCH_NAME}-${TIMESTAMP}" >> $GITHUB_ENV
+
+      - name: Build Docker images
+        run: |
+          IMAGE_PATH=${{ vars.GCP_ZONE }}-docker.pkg.dev/$GCP_PROJECT/${{ vars.REGISTRY }}/todos-api
+          docker build -t $IMAGE_PATH:latest -t $IMAGE_PATH:$IMAGE_TAG .
+
+      - name: Push Docker images
+        run: |
+          IMAGE_PATH=${{ vars.GCP_ZONE }}-docker.pkg.dev/$GCP_PROJECT/${{ vars.REGISTRY }}/todos-api
+          docker push $IMAGE_PATH:latest
+          docker push $IMAGE_PATH:$IMAGE_TAG
