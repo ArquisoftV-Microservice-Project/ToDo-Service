@@ -54,11 +54,11 @@ jobs:
 
       - name: Check if deployment exists and update if it does
         run: |
-          if kubectl get deployment frontend -n frontend &>/dev/null; then
+          if kubectl get deployment ${{ vars.IMAGE_NAME }} -n backend &>/dev/null; then
             kubectl set image deployment/${{ vars.IMAGE_NAME }} \
               ${{ vars.IMAGE_NAME }}-container=${{ vars.GCP_ZONE }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ vars.REGISTRY }}/${{ vars.IMAGE_NAME }}:$IMAGE_TAG \
-              -n frontend
+              -n backend
             echo "Deployment updated successfully"
           else
-            echo "Deployment frontend does not exist in namespace frontend. Skipping update."
+            echo "Deployment ${{ vars.IMAGE_NAME }} does not exist in namespace backend. Skipping update."
           fi
