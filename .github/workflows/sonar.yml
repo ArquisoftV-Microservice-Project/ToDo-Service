@@ -13,4 +13,4 @@ permissions:
 jobs:
   sonar-analysis:
     uses: ArquisoftV-Microservice-Project/devops-workflows/.github/workflows/sonar.yml@main
-    secrets: inherit
+    secrets: inherit  
